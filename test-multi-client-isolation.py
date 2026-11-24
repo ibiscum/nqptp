@@ -33,7 +33,7 @@ VERSION_OFF = 0        # uint16_t version
 MAIN_OFF = 8           # shm_structure_set main
 SECONDARY_OFF = 40     # shm_structure_set secondary
 MASTER_CLOCK_ID_OFF = 0  # first field of a shm_structure_set
-EXPECTED_SMI_VERSION = 10
+EXPECTED_SMI_VERSION = 11
 
 KITCHEN = "/nqptp-test-kitchen"
 FOYER = "/nqptp-test-foyer"

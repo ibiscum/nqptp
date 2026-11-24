@@ -1,6 +1,6 @@
 /*
  * This file is part of the nqptp distribution (https://github.com/mikebrady/nqptp).
- * Copyright (c) 2021 Mike Brady.
+ * Copyright (c) 2021-2026 Mike Brady.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,6 +16,9 @@
  *
  * Commercial licensing is also available.
  */
+
+#ifndef NQPTP_DEBUG_H
+#define NQPTP_DEBUG_H
 
 // four level debug message utility giving file and line, total elapsed time, interval time
 // warn / inform / debug / die calls.
@@ -33,3 +36,5 @@ void _debug(const char *filename, const int linenumber, int level, const char *f
 #define debug(...) _debug(__FILE__, __LINE__, __VA_ARGS__)
 #define warn(...) _warn(__FILE__, __LINE__, __VA_ARGS__)
 #define inform(...) _inform(__FILE__, __LINE__, __VA_ARGS__)
+
+#endif

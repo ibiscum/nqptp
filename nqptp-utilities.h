@@ -1,6 +1,6 @@
 /*
  * This file is part of the nqptp distribution (https://github.com/mikebrady/nqptp).
- * Copyright (c) 2021-2022 Mike Brady.
+ * Copyright (c) 2021-2026 Mike Brady.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@
 
 #include "nqptp.h"
 #include <inttypes.h>
-#include <pthread.h>
+#include <stddef.h>
 
 // functions that are specific to NQPTP
 // general stuff should go in the general-utilities

@@ -1,6 +1,6 @@
 /*
  * This file is part of the nqptp distribution (https://github.com/mikebrady/nqptp).
- * Copyright (c) 2021-2022 Mike Brady.
+ * Copyright (c) 2021-2026 Mike Brady.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,8 +20,8 @@
 #ifndef NQPTP_MESSAGE_HANDLERS_H
 #define NQPTP_MESSAGE_HANDLERS_H
 
-#include "general-utilities.h"
 #include "nqptp-clock-sources.h"
+#include <inttypes.h>
 #include <sys/types.h>
 
 void handle_announce(char *buf, ssize_t recv_len, clock_source_private_data *clock_private_info,

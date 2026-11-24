@@ -1,6 +1,6 @@
 /*
  * This file is part of the nqptp distribution (https://github.com/mikebrady/nqptp).
- * Copyright (c) 2021-2022 Mike Brady.
+ * Copyright (c) 2021-2026 Mike Brady.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,10 +22,7 @@
 
 #include <inttypes.h>
 
-// This is for definitions and stuff that flows more or less directly
-// from external sources.
-
-// They may not be used. Yet.
+// This file contains protocol definitions derived from external sources.
 
 // Derived from
 // https://github.com/rroussel/OpenAvnu/blob/ArtAndLogic-aPTP-changes/daemons/gptp/gptp_cfg.ini:
@@ -48,8 +45,7 @@
 
 // "Per the Apple Vendor PTP profile (8*announceReceiptTimeout)"
 // This doesn't seem to be used in OpenAvnu
-// Guess it's the same idea, but based on aPTPinitialLogSyncInterval
-// but it could be based on aPTPinitialLogAnnounceInterval, of course.
+// Similar timeout concept derived from profile constants.
 
 #define aPTPsyncReceiptTimeout 960
 
@@ -128,7 +124,7 @@ enum controlFieldValue {
 struct __attribute__((__packed__)) ptp_path_trace_tlv {
   uint16_t tlvType;
   uint16_t lengthField;
-  uint8_t pathSequence[0];
+  uint8_t pathSequence[];
 };
 
 // this is the structure of a TLV (14.3, Table 35, pp 135) without any space for the data
@@ -137,7 +133,7 @@ struct __attribute__((__packed__)) ptp_tlv {
   uint16_t lengthField;
   uint8_t organizationId[3];
   uint8_t organizationSubType[3];
-  uint8_t dataField[0];
+  uint8_t dataField[];
 };
 
 // this is the Common Message Header
@@ -185,7 +181,7 @@ struct __attribute__((__packed__)) ptp_delay_req {
 struct __attribute__((__packed__)) ptp_follow_up {
   uint8_t preciseOriginTimestamp[10];
   // to be followed by zero or more TLVs
-  struct ptp_tlv tlvs[0];
+  struct ptp_tlv tlvs[];
 };
 
 // this is the extra part for a Delay_Resp message
@@ -210,7 +206,7 @@ struct __attribute__((__packed__)) ptp_pdelay_resp {
 struct __attribute__((__packed__)) ptp_signaling {
   uint8_t targetPortIdentity[10];
   // to be followed by _one_ or more TLVs
-  struct ptp_tlv tlvs[0];
+  struct ptp_tlv tlvs[];
 };
 
 struct __attribute__((__packed__)) ptp_pdelay_req_message {

@@ -25,9 +25,10 @@
 #define NQPTP_SHM_STRUCTURES_VERSION 11
 #define NQPTP_CONTROL_PORT 9000
 
-// The control port expects a UDP packet with the first character being a command letter
-// and the rest being any arguments, the whole not to exceed 4096 characters.
-// The "T" command,  must followed by nothing or by
+// The control port expects a UDP packet containing a shared memory interface name,
+// followed by a space, followed by a command letter and any arguments, the whole
+// not to exceed 4096 characters.
+// The "T" command must be followed by nothing or by
 // a space and a space-delimited list of IPv4 or IPv6 numbers.
 // The IPs, if provided, will become the new list of timing peers, replacing any
 // previous list. The first IP number is the clock that NQPTP will listen to.

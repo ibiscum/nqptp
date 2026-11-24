@@ -1,6 +1,6 @@
 /*
  * This file is part of the nqptp distribution (https://github.com/mikebrady/nqptp).
- * Copyright (c) 2021-2022 Mike Brady.
+ * Copyright (c) 2021-2026 Mike Brady.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -62,7 +62,7 @@ typedef struct {
 typedef struct {
   int shm_fd;
   struct shm_structure *shared_memory; // the client's individual smi interface
-  char shm_interface_name[64];         // it's name
+  char shm_interface_name[64];         // its name
 
   // Everything below is per-client state that used to be file-scope globals in
   // nqptp-message-handlers.c, shared by every client on the host.
@@ -86,10 +86,6 @@ extern client_record clients[MAX_CLIENTS];
 int find_clock_source_record(char *sender_string, clock_source_private_data *clocks_private_info);
 
 int create_clock_source_record(char *sender_string, clock_source_private_data *clocks_private_info);
-
-void update_clock_self_identifications(clock_source_private_data *clocks_private_info);
-
-void manage_clock_sources(uint64_t reception_time, clock_source_private_data *clocks_private_info);
 
 int get_client_id(char *client_shared_memory_interface_name);
 const char *get_client_name(int client_id);

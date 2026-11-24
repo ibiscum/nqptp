@@ -1,5 +1,5 @@
 # NQPTP – Not Quite PTP
-`nqptp` is a daemon that monitors timing data from [PTP](https://en.wikipedia.org/wiki/Precision_Time_Protocol) clocks it sees on ports 319 and 320. It maintains records for one clock, identified by its Clock ID.
+`nqptp` is a daemon that monitors timing data from [PTP](https://en.wikipedia.org/wiki/Precision_Time_Protocol) clocks it sees on ports 319 and 320. It maintains per-client timing peer groups and shared memory interfaces, selecting the active master clock for each client.
 
 It is a companion application to [Shairport Sync](https://github.com/mikebrady/shairport-sync) and provides timing information for AirPlay 2 operation.
 
@@ -48,6 +48,11 @@ $ ./configure --with-systemd-startup
 $ make
 # make install
 ```
+For Linux/systemd builds, native journald logging can be requested explicitly with:
+```
+$ ./configure --with-systemd-startup --with-journald-logging=yes
+```
+The default is `--with-journald-logging=auto`, which enables native journald logging only when `libsystemd` is available at build time; otherwise it falls back to stderr logging (which systemd also captures in the journal).
 #### FreeBSD
 ```
 $ git clone https://github.com/mikebrady/nqptp.git
@@ -114,9 +119,10 @@ In Linux, `nqptp` runs as a low-priviliged user but is given special access to p
 In FreeBSD, `nqptp` runs as `root` user.
 
 ## Programming Notes
-Commands and status information are sent to `nqptp` over port 9000. 
+Commands and status information are sent to `nqptp` over port 9000.
+Each control packet starts with the client's shared memory interface name, then a space, then the command (for example: `/nqptp-room1 T 192.168.1.12`).
 
-Information about the PTP clock is provided via a [POSIX shared memory](https://pubs.opengroup.org/onlinepubs/007908799/xsh/shm_open.html) interface. 
+Information about each client's selected master clock is provided via a [POSIX shared memory](https://pubs.opengroup.org/onlinepubs/007908799/xsh/shm_open.html) interface named by that client in its control messages.
 
 
 Here are details of the interface:
@@ -125,6 +131,7 @@ typedef struct {
   uint64_t master_clock_id;             // the current master clock
   uint64_t local_time;                  // the time when the offset was calculated
   uint64_t local_to_master_time_offset; // add this to the local time to get master clock time
+  uint64_t clock_change_offset;         // difference between old and new offsets during master changes
   uint64_t master_clock_start_time;     // this is when the master clock became master
 } shm_structure_set;
 
