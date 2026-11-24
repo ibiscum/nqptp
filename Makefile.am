@@ -1,42 +1,53 @@
-bin_PROGRAMS = nqptp
-nqptp_SOURCES = nqptp.c nqptp-clock-sources.c nqptp-message-handlers.c nqptp-utilities.c general-utilities.c debug.c
-man_MANS = nqptp.8
+SUBDIRS = src tests
 
-AM_CFLAGS = -fno-common -Wall -Wextra -pthread --include=config.h
+# Remove stale top-level build artifacts from pre-reorg layouts so
+# distclean returns the tree to a configured-source state.
+LEGACY_TOP_BUILD_ARTIFACTS = \
+	$(top_builddir)/nqptp \
+	$(top_builddir)/debug.o \
+	$(top_builddir)/general-utilities.o \
+	$(top_builddir)/nqptp.o \
+	$(top_builddir)/nqptp-clock-sources.o \
+	$(top_builddir)/nqptp-message-handlers.o \
+	$(top_builddir)/nqptp-utilities.o \
+	$(top_builddir)/gitversion.h \
+	$(top_builddir)/gitversion-stamp
 
+distclean-local:
+	rm -f $(LEGACY_TOP_BUILD_ARTIFACTS)
+	rm -rf $(top_builddir)/.deps
 
-if USE_GIT_VERSION
-## Check if the git version information has changed and rebuild gitversion.h if so
-.PHONY: gitversion-check
-gitversion-check: 
-	$(top_srcdir)/check-gitversion
+AUTOTOOLS_GENERATED_FILES = \
+	$(top_srcdir)/Makefile.in \
+	$(top_srcdir)/src/Makefile.in \
+	$(top_srcdir)/tests/Makefile.in \
+	$(top_srcdir)/aclocal.m4 \
+	$(top_srcdir)/ar-lib \
+	$(top_srcdir)/compile \
+	$(top_srcdir)/config.guess \
+	$(top_srcdir)/config.h.in \
+	$(top_srcdir)/config.sub \
+	$(top_srcdir)/configure \
+	$(top_srcdir)/depcomp \
+	$(top_srcdir)/install-sh \
+	$(top_srcdir)/ltmain.sh \
+	$(top_srcdir)/mdate-sh \
+	$(top_srcdir)/missing \
+	$(top_srcdir)/py-compile \
+	$(top_srcdir)/test-driver \
+	$(top_srcdir)/ylwrap
 
-BUILT_SOURCES = gitversion-check
-CLEANFILES = gitversion-stamp gitversion.h
-endif
+maintainer-clean-local:
+	rm -f $(AUTOTOOLS_GENERATED_FILES)
+	rm -f $(PACKAGE)-$(VERSION).tar.gz $(PACKAGE)-$(VERSION).tar.bz2 $(PACKAGE)-$(VERSION).tar.xz $(PACKAGE)-$(VERSION).zip
+	find $(top_srcdir) -type f -name '*~' -delete
+	rm -rf $(top_srcdir)/autom4te.cache
 
-install-exec-hook:
-if BUILD_FOR_LINUX
-# Note: 1. NQPTP runs as a dynamic user on systemd-based Linux.
-#       2. Access to ports 319 and 320 is given via AmbientCapabilities in the service file.
-# If you want to run NQPTP from the command line, e.g. for debugging, run it as root user.
-# no installer for System V
-if INSTALL_SYSTEMD_STARTUP
-	[ -e $(DESTDIR)$(systemdsystemunitdir) ] || mkdir -p $(DESTDIR)$(systemdsystemunitdir)
-# don't replace a service file if it already exists...
-	[ -e $(DESTDIR)$(systemdsystemunitdir)/nqptp.service ] || cp nqptp.service $(DESTDIR)$(systemdsystemunitdir)
-endif
-endif
-
-if BUILD_FOR_FREEBSD
-# NQPTP runs as root on FreeBSD to access ports 319 and 320
-if INSTALL_FREEBSD_STARTUP
-	cp nqptp.freebsd /usr/local/etc/rc.d/nqptp
-	chmod 555 /usr/local/etc/rc.d/nqptp
-endif
-endif
-
-if BUILD_FOR_OPENBSD
-# NQPTP starts as root on OpenBSD to access ports 319 and 320
-# and drops privileges to the user shairport is running as.
-endif
+EXTRA_DIST = \
+	check-gitversion \
+	docs \
+	nqptp.service.in \
+	nqptp.freebsd \
+	README.md \
+	RELEASE_NOTES.md \
+	CHANGELOG.md

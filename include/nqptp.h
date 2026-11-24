@@ -1,6 +1,6 @@
 /*
  * This file is part of the nqptp distribution (https://github.com/mikebrady/nqptp).
- * Copyright (c) 2021-2022 Mike Brady.
+ * Copyright (c) 2021-2026 Mike Brady.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,6 @@
 #define NQPTP_H
 
 #include <inttypes.h>
-#include <pthread.h>
 
 #include "nqptp-shm-structures.h"
 
@@ -34,7 +33,7 @@
 // This is what is provided to the client.
 
 // An NQPTP client interface communicates through a shared memory interface named by the
-// shm_interface_name It provides the shm_interface_name at the start of every control message it
+// shm_interface_name. It provides the shm_interface_name at the start of every control message it
 // sends through port 9000. Following the name, the client can specify the members -- the "PTP
 // Instances" -- of a "PTP Network" it wishes to monitor. This is a "timing group" in AirPlay 2
 // parlance, it seems.

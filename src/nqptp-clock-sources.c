@@ -1,6 +1,6 @@
 /*
  * This file is part of the nqptp distribution (https://github.com/mikebrady/nqptp).
- * Copyright (c) 2021-2022 Mike Brady.
+ * Copyright (c) 2021-2026 Mike Brady.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -64,8 +64,14 @@ int client_is_in_use(int client_id) {
 int get_client_id(char *client_shared_memory_interface_name) {
   int response = -1; // signify not found
   if (client_shared_memory_interface_name != NULL) {
+    if (strlen(client_shared_memory_interface_name) >=
+        sizeof(clients[0].shm_interface_name)) {
+      warn("client shared memory interface name \"%s\" is too long.",
+           client_shared_memory_interface_name);
+      return -1;
+    }
     int i = 0;
-    // first, see if yu can find it anywhere
+    // first, see if you can find it anywhere
     while ((response == -1) && (i < MAX_CLIENTS)) {
       if (strcmp(clients[i].shm_interface_name, client_shared_memory_interface_name) == 0)
         response = i;
@@ -82,54 +88,57 @@ int get_client_id(char *client_shared_memory_interface_name) {
           i++;
       }
       if (response != -1) {
-        strncpy(clients[i].shm_interface_name, client_shared_memory_interface_name,
-                sizeof(clients[i].shm_interface_name));
+        int slot = response;
+        strncpy(clients[slot].shm_interface_name, client_shared_memory_interface_name,
+                sizeof(clients[slot].shm_interface_name) - 1);
+        clients[slot].shm_interface_name[sizeof(clients[slot].shm_interface_name) - 1] = '\0';
         // create the named smi interface
 
         // open a shared memory interface.
-        debug(2, "Create a shm interface named \"%s\"", clients[i].shm_interface_name);
-        clients[i].shm_fd = -1;
+        debug(2, "Create a shm interface named \"%s\"", clients[slot].shm_interface_name);
+        clients[slot].shm_fd = -1;
 
         mode_t oldumask = umask(0);
-        clients[i].shm_fd = shm_open(client_shared_memory_interface_name, O_RDWR | O_CREAT, 0666);
-        if (clients[i].shm_fd == -1) {
+        clients[slot].shm_fd =
+            shm_open(clients[slot].shm_interface_name, O_RDWR | O_CREAT, 0666);
+        if (clients[slot].shm_fd == -1) {
           die("cannot open shared memory \"%s\".", client_shared_memory_interface_name);
         }
         (void)umask(oldumask);
 
-        if (shm_ftruncate(clients[i].shm_fd, sizeof(struct shm_structure)) == -1) {
+        if (shm_ftruncate(clients[slot].shm_fd, sizeof(struct shm_structure)) == -1) {
           die("failed to set size of shared memory \"%s\".", client_shared_memory_interface_name);
         }
 
 #if defined(CONFIG_FOR_FREEBSD) || defined(CONFIG_FOR_DARWIN)
-        clients[i].shared_memory =
+        clients[slot].shared_memory =
             (struct shm_structure *)mmap(NULL, sizeof(struct shm_structure), PROT_READ | PROT_WRITE,
-                                         MAP_SHARED, clients[i].shm_fd, 0);
+                                         MAP_SHARED, clients[slot].shm_fd, 0);
 #endif
 
 #ifdef CONFIG_FOR_LINUX
-        clients[i].shared_memory =
+        clients[slot].shared_memory =
             (struct shm_structure *)mmap(NULL, sizeof(struct shm_structure), PROT_READ | PROT_WRITE,
-                                         MAP_LOCKED | MAP_SHARED, clients[i].shm_fd, 0);
+                                         MAP_LOCKED | MAP_SHARED, clients[slot].shm_fd, 0);
 #endif
 
-        if (clients[i].shared_memory == (struct shm_structure *)-1) {
+        if (clients[slot].shared_memory == (struct shm_structure *)-1) {
           die("failed to mmap shared memory \"%s\".", client_shared_memory_interface_name);
         }
 
-        if ((close(clients[i].shm_fd) == -1)) {
+        if ((close(clients[slot].shm_fd) == -1)) {
           warn("error closing \"%s\" after mapping.", client_shared_memory_interface_name);
         }
 
         // zero it
-        memset(clients[i].shared_memory, 0, sizeof(struct shm_structure));
-        clients[i].shared_memory->version = NQPTP_SHM_STRUCTURES_VERSION;
+        memset(clients[slot].shared_memory, 0, sizeof(struct shm_structure));
+        clients[slot].shared_memory->version = NQPTP_SHM_STRUCTURES_VERSION;
 
         // start this client with an empty timing peer group of its own
-        memset(clients[i].clocks_private, 0, sizeof(clients[i].clocks_private));
-        clients[i].clock_is_active = 0;
-        clients[i].clock_validity_expiration_time = 0;
-        clients[i].reset_clock_smoothing = 0;
+        memset(clients[slot].clocks_private, 0, sizeof(clients[slot].clocks_private));
+        clients[slot].clock_is_active = 0;
+        clients[slot].clock_validity_expiration_time = 0;
+        clients[slot].reset_clock_smoothing = 0;
       } else {
         debug(1, "could not create a client record for client \"%s\".",
               client_shared_memory_interface_name);
@@ -138,12 +147,17 @@ int get_client_id(char *client_shared_memory_interface_name) {
   } else {
     debug(1, "no client_shared_memory_interface_name");
   }
-  debug(2, "get_client_id \"%s\" response %d", client_shared_memory_interface_name, response);
+  debug(2, "get_client_id \"%s\" response %d",
+        client_shared_memory_interface_name != NULL ? client_shared_memory_interface_name
+                                                    : "(null)",
+        response);
   return response;
 }
 
 int delete_client(int client_id) {
   int response = 0; // okay unless something happens
+  if ((client_id < 0) || (client_id >= MAX_CLIENTS))
+    return -1;
   if (clients[client_id].shm_interface_name[0] != '\0') {
     if (clients[client_id].shared_memory != NULL) {
       // mmap cleanup
@@ -222,7 +236,7 @@ int create_clock_source_record(char *sender_string,
       debug(2, "create record for ip: %s, family: %s.", &clocks_private_info[i].ip,
             clocks_private_info[i].family == AF_INET6 ? "IPv6" : "IPv4");
     } else {
-      debug(1, "cannot getaddrinfo for ip: %s.", &clocks_private_info[i].ip);
+      debug(1, "cannot getaddrinfo for ip: %s.", sender_string);
     }
   } else {
     debug(1, "Clock tables full!");

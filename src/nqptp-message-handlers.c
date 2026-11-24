@@ -1,6 +1,6 @@
 /*
  * This file is part of the nqptp distribution (https://github.com/mikebrady/nqptp).
- * Copyright (c) 2021-2022 Mike Brady.
+ * Copyright (c) 2021-2026 Mike Brady.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,28 +29,43 @@
 #include "nqptp-ptp-definitions.h"
 #include "nqptp-utilities.h"
 
-char hexcharbuffer[16384];
-
-char *hex_string(void *buf, size_t buf_len) {
-  char *tbuf = (char *)buf;
-  char *obfp = hexcharbuffer;
+static void hex_string(const uint8_t *buf, size_t buf_len, char *out, size_t out_len) {
+  if ((out == NULL) || (out_len == 0))
+    return;
+  size_t needed = buf_len * 2 + 1;
+  if (out_len < needed) {
+    out[0] = '\0';
+    return;
+  }
+  char *obfp = out;
   size_t obfc;
   for (obfc = 0; obfc < buf_len; obfc++) {
-    snprintf(obfp, 3, "%02X", *tbuf);
+    snprintf(obfp, 3, "%02X", buf[obfc]);
     obfp += 2;
-    tbuf = tbuf + 1;
-  };
-  *obfp = 0;
-  return hexcharbuffer;
+  }
+  *obfp = '\0';
 }
 
 void handle_control_port_messages(char *buf, ssize_t recv_len, uint64_t reception_time) {
   if (recv_len != -1) {
     if ((buf != NULL) && (recv_len > 0)) {
-      buf[recv_len - 1] = 0; // we know it's not empty, so make sure there's a null in it.
-      debug(2, "New control port message: \"%s\".", buf);
+      char *working_buf = buf;
+      char *allocated_working_buf = NULL;
+      if (buf[recv_len - 1] == '\0') {
+        buf[recv_len - 1] = '\0';
+      } else {
+        allocated_working_buf = malloc((size_t)recv_len + 1);
+        if (allocated_working_buf == NULL) {
+          warn("Could not allocate %zd bytes for control message parsing.", recv_len + 1);
+          return;
+        }
+        memcpy(allocated_working_buf, buf, (size_t)recv_len);
+        allocated_working_buf[recv_len] = '\0';
+        working_buf = allocated_working_buf;
+      }
+      debug(2, "New control port message: \"%s\".", working_buf);
       // we need to get the client shared memory interface name from the front
-      char *ip_list = buf;
+      char *ip_list = working_buf;
       char *smi_name = strsep(&ip_list, " ");
       char *command = NULL;
       if (smi_name != NULL) {
@@ -61,6 +76,7 @@ void handle_control_port_messages(char *buf, ssize_t recv_len, uint64_t receptio
         int client_id = get_client_id(smi_name); // creates the record if it doesn't exist
         if (client_id == -1) {
           warn("Could not find or create a record for SMI Interface \"%s\".", smi_name);
+          free(allocated_working_buf);
           return;
         }
         client_record *client = &clients[client_id];
@@ -130,7 +146,7 @@ void handle_control_port_messages(char *buf, ssize_t recv_len, uint64_t receptio
             debug(2, "Pause");
             // A pause always seems to turn into a Stop in now more than a few seconds, and the
             // clock keeps going, it seems so there is nothing to do here.
-          } else if ((command == NULL) || ((strcmp(command, "T") == 0) && (ip_list == NULL))) {
+          } else if ((strcmp(command, "T") == 0) && (ip_list == NULL)) {
             debug(2, "Stop Timing for client \"%s\".", get_client_name(client_id));
             client->clock_is_active = 0;
             debug(2, "Clear timing peer group.");
@@ -185,6 +201,7 @@ void handle_control_port_messages(char *buf, ssize_t recv_len, uint64_t receptio
       } else {
         warn("SMI Interface Name not found on the control port.");
       }
+      free(allocated_working_buf);
     } else {
       warn("Missing or empty packet on the control port.");
     }
@@ -600,14 +617,15 @@ void handle_follow_up(char *buf, ssize_t recv_len, clock_source_private_data *cl
                                                ((uint32_t)val[25] << 16) |
                                                ((uint32_t)val[26] << 8) | val[27];
 
-            uint64_t last_tlv_clock = nctoh64((uint8_t *)buf + 86);
             uint64_t huh = offset - lpt;
+            char phase_change_hex[25];
+            hex_string(lastGmPhaseChange, 12, phase_change_hex, sizeof(phase_change_hex));
 
             debug_print_buffer(2, clock_private_info->ip, buf, (size_t)recv_len);
             debug(2,
                   "Clock ID: %" PRIx64 ", %" PRIx64 ", %s, Origin: %016" PRIx64 ", LPT: %016" PRIx64
                   ", Offset: %016" PRIx64 ", Universal Offset: %016" PRIx64 ", packet length: %u.",
-                  clock_private_info->clock_id, last_tlv_clock, hex_string(lastGmPhaseChange, 12),
+                  clock_private_info->clock_id, lpt, phase_change_hex,
                   preciseOriginTimestamp, lpt, offset, huh, recv_len);
 
             debug(2,
@@ -618,7 +636,7 @@ void handle_follow_up(char *buf, ssize_t recv_len, clock_source_private_data *cl
                   "scaledLastGmFreqChange: 0x%08x.\n",
                   cumulativeScaledRateOffset,
                   gmTimeBaseIndicator,
-                  hex_string(lastGmPhaseChange, 12),
+                  phase_change_hex,
                   scaledLastGmFreqChange);
           }
         }

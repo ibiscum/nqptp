@@ -113,8 +113,6 @@ uint64_t sample_task(uint64_t call_time, __attribute__((unused)) void *private_d
 }
 */
 
-int epoll_fd;
-
 void goodbye(void) {
   // close any open sockets
   unsigned int i;
@@ -125,9 +123,6 @@ void goodbye(void) {
   // separate daemon-wide region any more -- a client that uses the default
   // name simply gets a client record called NQPTP_INTERFACE_NAME.
   delete_clients();
-
-  if (epoll_fd != -1)
-    close(epoll_fd);
 
   debug(1, "goodbye");
 }
@@ -199,7 +194,7 @@ int main(int argc, char **argv) {
   atexit(goodbye);
   
   
-  // try to set a real time scheduling policy with a priority of -6
+  // try to set a real time scheduling policy with a priority of 5
   // but not on macOS
 #ifndef CONFIG_FOR_DARWIN
   int policy = SCHED_FIFO;
@@ -215,8 +210,6 @@ int main(int argc, char **argv) {
   // open PTP sockets
   open_sockets_at_port(NULL, 319, &sockets_open_stuff);
   open_sockets_at_port(NULL, 320, &sockets_open_stuff);
-
-  epoll_fd = -1;
 
   // control-c (SIGINT) cleanly
   struct sigaction act;
@@ -458,6 +451,10 @@ void send_awakening_announcement_sequence(const uint64_t clock_id, const char *c
   struct ptp_announce_message *msg;
   size_t msg_length = sizeof(struct ptp_announce_message);
   msg = malloc(msg_length);
+  if (msg == NULL) {
+    warn("Could not allocate %zu bytes for announce message.", msg_length);
+    return;
+  }
   memset((void *)msg, 0, msg_length);
 
   uint64_t my_clock_id = get_self_clock_id();
@@ -506,10 +503,10 @@ void send_awakening_announcement_sequence(const uint64_t clock_id, const char *c
     const char *portname = "320";
     struct addrinfo hints;
     memset(&hints, 0, sizeof(hints));
-    hints.ai_family = AF_UNSPEC;
+    hints.ai_family = ip_family;
     hints.ai_socktype = SOCK_DGRAM;
     hints.ai_protocol = 0;
-    hints.ai_flags = AI_ADDRCONFIG;
+    hints.ai_flags = 0;
     struct addrinfo *res = NULL;
     int err = getaddrinfo(clock_ip, portname, &hints, &res);
     if (err != 0) {

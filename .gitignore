@@ -7,10 +7,10 @@ configure~
 /py-compile
 /test-driver
 /ylwrap
+*.tar.gz
 
 # http://www.gnu.org/software/autoconf
 
-INSTALL
 autom4te.cache
 /autoscan.log
 /autoscan-*.log
@@ -23,6 +23,8 @@ autom4te.cache
 /missing
 /stamp-h1
 /.deps/
+/src/.deps/
+/tests/.deps/
 /*.service
 
 # https://www.gnu.org/software/libtool/
@@ -48,12 +50,23 @@ m4/lt~obsolete.m4
 Makefile
 
 # Object files
-/*.o
+*.o
 
-# Executable
+# Executables and generated test binaries
 nqptp
+src/nqptp
+tests/unit-*
+tests/regression-*
 
 # Version files generated from check-gitversion
 gitversion.h
 gitversion-stamp
+src/gitversion.h
+src/gitversion-stamp
 
+# miscellaneous files
+*.log
+*.tmp
+*.swp
+*.bak
+*.trs

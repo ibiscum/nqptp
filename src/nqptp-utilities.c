@@ -1,6 +1,6 @@
 /*
  * This file is part of the nqptp distribution (https://github.com/mikebrady/nqptp).
- * Copyright (c) 2021-2022 Mike Brady.
+ * Copyright (c) 2021-2026 Mike Brady.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,6 +40,7 @@
 #include <stdio.h>  // snprintf
 #include <stdlib.h> // malloc, free
 #include <string.h> // memset strcpy, etc.
+#include <unistd.h> // close
 
 #include "debug.h"
 
@@ -64,7 +65,7 @@ void open_sockets_at_port(const char *node, uint16_t port,
 
   ret = getaddrinfo(node, portstr, &hints, &info);
   if (ret) {
-    die("getifaddrs: %s", gai_strerror(ret));
+    die("getaddrinfo: %s", gai_strerror(ret));
   }
 
   for (p = info; p; p = p->ai_next) {
@@ -102,6 +103,11 @@ void open_sockets_at_port(const char *node, uint16_t port,
       // report its availability. Do not complain.
 
       if (ret == 0) {
+        if (sockets_open_stuff->sockets_open >= MAX_OPEN_SOCKETS) {
+          close(fd);
+          die("too many sockets opened while listening on port %u -- max is %d.", port,
+              MAX_OPEN_SOCKETS);
+        }
         // debug(1, "socket %d is listening on %s port %d.", fd,
         //       p->ai_family == AF_INET6 ? "IPv6" : "IPv4", port);
         sockets_open_stuff->sockets[sockets_open_stuff->sockets_open].number = fd;
@@ -109,6 +115,8 @@ void open_sockets_at_port(const char *node, uint16_t port,
         sockets_open_stuff->sockets[sockets_open_stuff->sockets_open].family = p->ai_family;
         sockets_open_stuff->sockets_open++;
         sockets_opened++;
+      } else {
+        close(fd);
       }
     }
   }
@@ -122,7 +130,7 @@ void open_sockets_at_port(const char *node, uint16_t port,
   }
 }
 
-void debug_print_buffer(int level, char * sender, char *buf, size_t buf_len) {
+void debug_print_buffer(int level, char *sender, char *buf, size_t buf_len) {
   if (debug_level() >= level) {
     // printf("Received %u bytes in a packet from %s:%d\n", buf_len, inet_ntoa(si_other.sin_addr),
     // ntohs(si_other.sin_port));

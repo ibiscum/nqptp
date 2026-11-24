@@ -1,6 +1,6 @@
 /*
  * This file is part of the nqptp distribution (https://github.com/mikebrady/nqptp).
- * Copyright (c) 2021-2022 Mike Brady.
+ * Copyright (c) 2021-2026 Mike Brady.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@
 #include "general-utilities.h"
 #include "debug.h"
 #include <arpa/inet.h> // ntohl etc.
+#include <errno.h>
 #include <string.h>    // memcpy
 #include <sys/stat.h>  // fstat
 #include <unistd.h>    // ftruncate
@@ -36,7 +37,7 @@ void hcton64(uint64_t num, uint8_t *p) {
   memcpy(p, &rev, sizeof(uint32_t));
 }
 
-uint64_t nctoh64(const uint8_t *p) { // read 4 characters from *p and do ntohl on them
+uint64_t nctoh64(const uint8_t *p) { // read 8 bytes from *p and do ntohl on two halves
   // this is to avoid possible aliasing violations
   uint64_t value = nctohl(p);
   uint64_t value_low = nctohl(p + 4);
@@ -45,14 +46,14 @@ uint64_t nctoh64(const uint8_t *p) { // read 4 characters from *p and do ntohl o
   return value;
 }
 
-uint32_t nctohl(const uint8_t *p) { // read 4 characters from *p and do ntohl on them
+uint32_t nctohl(const uint8_t *p) { // read 4 bytes from *p and do ntohl on them
   // this is to avoid possible aliasing violations
   uint32_t holder;
   memcpy(&holder, p, sizeof(holder));
   return ntohl(holder);
 }
 
-uint16_t nctohs(const uint8_t *p) { // read 2 characters from *p and do ntohs on them
+uint16_t nctohs(const uint8_t *p) { // read 2 bytes from *p and do ntohs on them
   // this is to avoid possible aliasing violations
   uint16_t holder;
   memcpy(&holder, p, sizeof(holder));
@@ -72,33 +73,19 @@ uint64_t ntoh64(const uint64_t n) {
   return fiddle;
 }
 
-uint64_t timespec_to_ns(struct timespec *tn) {
-  uint64_t tnfpsec = tn->tv_sec;
-  uint64_t tnfpnsec = tn->tv_nsec;
-  tnfpsec = tnfpsec * 1000000000;
-  return tnfpsec + tnfpnsec;
-}
-
-/*
 uint64_t get_time_now() {
   struct timespec tn;
-#ifdef CLOCK_MONOTONIC_RAW
-  clock_gettime(CLOCK_MONOTONIC_RAW, &tn);
-#else
-  clock_gettime(CLOCK_MONOTONIC, &tn);
-#endif
-  return timespec_to_ns(&tn);
-}
-*/
-uint64_t get_time_now() {
-  struct timespec tn;
+  int rc = -1;
 #if defined(CONFIG_FOR_DARWIN)
-  clock_gettime(CLOCK_UPTIME_RAW, &tn);
+  rc = clock_gettime(CLOCK_UPTIME_RAW, &tn);
 #elif defined(CLOCK_MONOTONIC_RAW)
-  clock_gettime(CLOCK_MONOTONIC_RAW, &tn);
+  rc = clock_gettime(CLOCK_MONOTONIC_RAW, &tn);
 #else
-  clock_gettime(CLOCK_MONOTONIC, &tn);
+  rc = clock_gettime(CLOCK_MONOTONIC, &tn);
 #endif
+  if (rc != 0) {
+    die("clock_gettime failed: %d, \"%s\".", errno, strerror(errno));
+  }
   return (uint64_t)tn.tv_sec * 1000000000u + (uint64_t)tn.tv_nsec;
 }
 

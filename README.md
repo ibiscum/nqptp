@@ -1,7 +1,15 @@
 # NQPTP – Not Quite PTP
-`nqptp` is a daemon that monitors timing data from [PTP](https://en.wikipedia.org/wiki/Precision_Time_Protocol) clocks it sees on ports 319 and 320. It maintains records for one clock, identified by its Clock ID.
+`nqptp` is a daemon that monitors timing data from [PTP](https://en.wikipedia.org/wiki/Precision_Time_Protocol) clocks it sees on ports 319 and 320. It maintains per-client timing peer groups and shared memory interfaces, selecting the active master clock for each client.
 
 It is a companion application to [Shairport Sync](https://github.com/mikebrady/shairport-sync) and provides timing information for AirPlay 2 operation.
+
+Its purpose is to isolate clock tracking per client and provide a stable local-to-master clock offset that clients can read with low overhead from shared memory.
+
+At a high level, the flow is:
+1. A client sends control messages on UDP port 9000, prefixed with its shared memory interface name, to declare or clear timing peers.
+2. `nqptp` opens and monitors PTP traffic on UDP ports 319 and 320 and matches incoming clock messages to each client's timing peer set.
+3. Follow-up and announce data are processed to identify mastership and smooth offset changes over time.
+4. The resulting timing state is written to that client's shared memory interface, where the client reads it to drive AirPlay 2 synchronization.
 
 ## Installation
 
@@ -46,7 +54,30 @@ $ cd nqptp
 $ autoreconf -fi # about a minute on a Raspberry Pi.
 $ ./configure --with-systemd-startup
 $ make
+# make check
 # make install
+```
+For Linux/systemd builds, native journald logging can be requested explicitly with:
+```
+$ ./configure --with-systemd-startup --with-journald-logging=yes
+```
+The default is `--with-journald-logging=auto`, which enables native journald logging only when `libsystemd` is available at build time; otherwise it falls back to stderr logging (which systemd also captures in the journal).
+
+For a full cleanup in GNU-style Autotools workflows, run:
+```
+$ make distclean
+```
+This removes generated build files and returns the tree to a post-checkout state (you can then run `./configure` again).
+
+To remove maintainer-generated Autotools files (for example `configure`, `Makefile.in`, and `aclocal.m4`) and force full regeneration from `configure.ac`/`Makefile.am`, run this from a configured tree (`./configure` already run):
+```
+$ make maintainer-clean
+```
+This also removes generated release tarballs (for example `nqptp-<version>.tar.gz`) and editor backup files (`*~`) in the source tree.
+
+To create a release tarball from the current source tree, run:
+```
+$ make dist
 ```
 #### FreeBSD
 ```
@@ -55,9 +86,12 @@ $ cd nqptp
 $ autoreconf -fi
 $ ./configure --with-freebsd-startup
 $ make
+# make check
 # make install
 ```
 The `make install` installs a startup script as requested. You should enable it and start it in the normal way:
+
+Unit and regression tests are integrated into `make check`. The C unit test suite uses [cmocka](https://cmocka.org/), which is required at configure time.
 
 ### First Install or Update?
 #### Linux
@@ -114,9 +148,10 @@ In Linux, `nqptp` runs as a low-priviliged user but is given special access to p
 In FreeBSD, `nqptp` runs as `root` user.
 
 ## Programming Notes
-Commands and status information are sent to `nqptp` over port 9000. 
+Commands and status information are sent to `nqptp` over port 9000.
+Each control packet starts with the client's shared memory interface name, then a space, then the command (for example: `/nqptp-room1 T 192.168.1.12`).
 
-Information about the PTP clock is provided via a [POSIX shared memory](https://pubs.opengroup.org/onlinepubs/007908799/xsh/shm_open.html) interface. 
+Information about each client's selected master clock is provided via a [POSIX shared memory](https://pubs.opengroup.org/onlinepubs/007908799/xsh/shm_open.html) interface named by that client in its control messages.
 
 
 Here are details of the interface:
@@ -125,6 +160,7 @@ typedef struct {
   uint64_t master_clock_id;             // the current master clock
   uint64_t local_time;                  // the time when the offset was calculated
   uint64_t local_to_master_time_offset; // add this to the local time to get master clock time
+  uint64_t clock_change_offset;         // difference between old and new offsets during master changes
   uint64_t master_clock_start_time;     // this is when the master clock became master
 } shm_structure_set;
 

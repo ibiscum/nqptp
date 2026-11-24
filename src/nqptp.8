@@ -57,8 +57,8 @@ Cleanly shut down the daemon, equivalent to
 .BR SIGTERM .
 .SH FILES
 .TP
-.I /dev/shm/nqptp
-Shared memory segment used to pass timing data to
+.I /dev/shm/<interface-name>
+Per-client shared memory segment used to pass timing data to
 .BR shairport-sync (1).
 .SH NOTES
 .B nqptp

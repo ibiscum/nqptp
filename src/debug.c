@@ -1,6 +1,6 @@
 /*
  * This file is part of the nqptp distribution (https://github.com/mikebrady/nqptp).
- * Copyright (c) 2021 Mike Brady.
+ * Copyright (c) 2021-2026 Mike Brady.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +26,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
+#ifdef CONFIG_USE_JOURNALD_LOGGING
+#include <systemd/sd-journal.h>
+#endif
 
 int debuglev = 0;
 int debugger_show_elapsed_time = 0;
@@ -37,6 +40,17 @@ uint64_t ns_time_at_last_debug_message;
 
 // always lock use this when accessing the ns_time_at_last_debug_message
 static pthread_mutex_t debug_timing_lock = PTHREAD_MUTEX_INITIALIZER;
+
+static void emit_log_line(int priority, const char *message) {
+#ifdef CONFIG_USE_JOURNALD_LOGGING
+  int jrc = sd_journal_send("PRIORITY=%d", priority, "MESSAGE=%s", message, NULL);
+  if (jrc < 0)
+    fprintf(stderr, "%s\n", message);
+#else
+  (void)priority;
+  fprintf(stderr, "%s\n", message);
+#endif
+}
 
 uint64_t get_absolute_time_in_ns() {
   uint64_t time_now_ns;
@@ -114,8 +128,7 @@ void _die(const char *filename, const int linenumber, const char *format, ...) {
   va_start(args, format);
   vsnprintf(s, sizeof(b) - (s - b), format, args);
   va_end(args);
-  // syslog(LOG_ERR, "%s", b);
-  fprintf(stderr, "%s\n", b);
+  emit_log_line(LOG_ERR, b);
   pthread_setcancelstate(oldState, NULL);
   exit(EXIT_FAILURE);
 }
@@ -144,8 +157,7 @@ void _warn(const char *filename, const int linenumber, const char *format, ...) 
   va_start(args, format);
   vsnprintf(s, sizeof(b) - (s - b), format, args);
   va_end(args);
-  // syslog(LOG_WARNING, "%s", b);
-  fprintf(stderr, "%s\n", b);
+  emit_log_line(LOG_WARNING, b);
   pthread_setcancelstate(oldState, NULL);
 }
 
@@ -169,8 +181,7 @@ void _debug(const char *filename, const int linenumber, int level, const char *f
   va_start(args, format);
   vsnprintf(s, sizeof(b) - (s - b), format, args);
   va_end(args);
-  // syslog(LOG_DEBUG, "%s", b);
-  fprintf(stderr, "%s\n", b);
+  emit_log_line(LOG_DEBUG, b);
   pthread_setcancelstate(oldState, NULL);
 }
 
@@ -197,7 +208,6 @@ void _inform(const char *filename, const int linenumber, const char *format, ...
   va_start(args, format);
   vsnprintf(s, sizeof(b) - (s - b), format, args);
   va_end(args);
-  // syslog(LOG_INFO, "%s", b);
-  fprintf(stderr, "%s\n", b);
+  emit_log_line(LOG_INFO, b);
   pthread_setcancelstate(oldState, NULL);
 }

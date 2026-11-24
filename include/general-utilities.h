@@ -1,6 +1,6 @@
 /*
  * This file is part of the nqptp distribution (https://github.com/mikebrady/nqptp).
- * Copyright (c) 2021-2022 Mike Brady.
+ * Copyright (c) 2021-2026 Mike Brady.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,7 +43,6 @@ void hcton64(uint64_t num, uint8_t *p);
 uint64_t nctoh64(const uint8_t *p);
 uint32_t nctohl(const uint8_t *p);
 uint16_t nctohs(const uint8_t *p);
-uint64_t timespec_to_ns(struct timespec *tn);
 uint64_t get_time_now();
 
 uint64_t ntoh64(const uint64_t n);
