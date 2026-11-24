@@ -5,7 +5,8 @@ AC_PREREQ([2.68])
 AC_INIT([nqptp], [1.2.9], [4265913+mikebrady@users.noreply.github.com])
 : ${CFLAGS="-O3"}
 : ${CXXFLAGS="-O3"}
-AM_INIT_AUTOMAKE
+AM_INIT_AUTOMAKE([foreign subdir-objects])
+AC_CONFIG_MACRO_DIRS([m4])
 AC_CANONICAL_HOST
 
 build_linux=no
@@ -59,6 +60,8 @@ AM_CONDITIONAL([USE_GIT_VERSION], [test -n "$GIT" && test -e ".git/index" ])
 
 SYSTEMD_CFLAGS=""
 SYSTEMD_LIBS=""
+CMOCKA_CFLAGS=""
+CMOCKA_LIBS=""
 
 
 # Check to see if we should include the systemd stuff to define it as a service
@@ -83,13 +86,16 @@ AC_ARG_WITH([systemdsystemunitdir],
   [with_systemdsystemunitdir=$withval],
   [with_systemdsystemunitdir=auto])
 
-AC_CONFIG_SRCDIR([nqptp.c])
+AC_CONFIG_SRCDIR([src/nqptp.c])
 AC_CONFIG_HEADERS([config.h])
 
 # Checks for programs.
 AC_PROG_CC
 AC_PROG_INSTALL
 PKG_PROG_PKG_CONFIG
+
+PKG_CHECK_MODULES([CMOCKA], [cmocka >= 1.1.0], [],
+  [AC_MSG_ERROR([cmocka >= 1.1.0 is required for unit/regression tests])])
 
 AS_CASE([$with_journald_logging],
   [yes|no|auto], [],
@@ -146,10 +152,12 @@ AS_IF([test "x$with_systemdsystemunitdir" = "xauto"],
 AC_SUBST([systemdsystemunitdir], [$with_systemdsystemunitdir])
 AC_SUBST([SYSTEMD_CFLAGS])
 AC_SUBST([SYSTEMD_LIBS])
+AC_SUBST([CMOCKA_CFLAGS])
+AC_SUBST([CMOCKA_LIBS])
 
 AS_IF([test "x$with_systemd_startup" = "xyes"],
   [AC_MSG_NOTICE([systemd unit directory: $with_systemdsystemunitdir])])
 
 
-AC_CONFIG_FILES([Makefile nqptp.service])
+AC_CONFIG_FILES([Makefile src/Makefile tests/Makefile nqptp.service])
 AC_OUTPUT

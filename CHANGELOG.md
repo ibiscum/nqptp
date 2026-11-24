@@ -31,13 +31,23 @@
 - Add an include guard to `debug.h` and normalize `debug.h`/`debug.c` metadata years.
 - Add `--with-journald-logging=auto|yes|no` configure support and conditional `libsystemd` integration.
 - Add native journald logging backend in `debug.c` with automatic fallback to stderr if journald is unavailable or send fails.
+- Reorganize project layout into `src/`, `include/`, and `tests/` directories for cleaner Autoconf/Automake structure.
+- Add GNU-style `make distclean` cleanup hooks to remove generated gitversion files and legacy top-level build artifacts from pre-reorg layouts.
+- Add GNU-style `make maintainer-clean` cleanup hooks for Autotools-generated maintainer files (`configure`, `Makefile.in`, `aclocal.m4`, etc.).
+- Fix `tests/Makefile.am` distribution manifest so `make dist` no longer pulls in test binaries via `EXTRA_DIST`.
+- Extend `make maintainer-clean` to remove generated release tarballs and editor backup files (`*~`) left in the source tree.
 
 ### Tests
-- Update `test-multi-client-isolation.py` to expect shared-memory interface version `11`.
-- Add `test-nqptp-source-invariants.py` unit checks to guard critical `nqptp.c` invariants for allocation safety and address-family consistency.
-- Add `test-nqptp-utilities-source-invariants.py` unit checks to guard critical `nqptp-utilities.c` socket setup invariants.
-- Add `test-nqptp-message-handlers-source-invariants.py` unit checks to guard control-message parsing and Follow_Up TLV parsing invariants.
-- Add `test-nqptp-clock-sources-source-invariants.py` unit checks to guard `nqptp-clock-sources.c` client/lookup safety invariants.
+- Add required cmocka configure check (`cmocka >= 1.1.0`) and integrate C unit tests into `make check`.
+- Add `tests/unit/test_general_utilities.c` as the first cmocka unit-test suite.
+- Port `test-nqptp-source-invariants.py` to cmocka as `tests/unit/test_nqptp_source_invariants.c` and run the C version in `make check`.
+- Port `test-nqptp-utilities-source-invariants.py` to cmocka as `tests/unit/test_nqptp_utilities_source_invariants.c` and run the C version in `make check`.
+- Port `test-nqptp-clock-sources-source-invariants.py` to cmocka as `tests/unit/test_nqptp_clock_sources_source_invariants.c` and remove the Python version.
+- Port `test-nqptp-logging-config-source-invariants.py` to cmocka as `tests/unit/test_nqptp_logging_config_source_invariants.c` and remove the Python version.
+- Port `test-nqptp-message-handlers-source-invariants.py` to cmocka as `tests/unit/test_nqptp_message_handlers_source_invariants.c` and remove the Python version.
+- Port `test-multi-client-isolation.py` to cmocka as `tests/regression/test_multi_client_isolation.c` and remove the Python version.
+- Remove stale legacy Python invariant scripts now superseded by cmocka (`test-nqptp-source-invariants.py`, `test-nqptp-utilities-source-invariants.py`).
+- Ensure the multi-client isolation regression test checks shared-memory interface version `11`.
 
 ### Documentation
 - Update `README.md` to describe per-client timing peer groups and named shared-memory interfaces.
