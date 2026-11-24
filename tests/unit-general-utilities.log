@@ -1,0 +1,16 @@
+[==========] tests: Running 6 test(s).
+[ RUN      ] test_nctohs_reads_network_u16
+[       OK ] test_nctohs_reads_network_u16
+[ RUN      ] test_nctohl_reads_network_u32
+[       OK ] test_nctohl_reads_network_u32
+[ RUN      ] test_nctoh64_reads_network_u64
+[       OK ] test_nctoh64_reads_network_u64
+[ RUN      ] test_hcton64_round_trip
+[       OK ] test_hcton64_round_trip
+[ RUN      ] test_ntoh64_matches_halves
+[       OK ] test_ntoh64_matches_halves
+[ RUN      ] test_get_time_now_is_nonzero
+[       OK ] test_get_time_now_is_nonzero
+[==========] tests: 6 test(s) run.
+[  PASSED  ] 6 test(s).
+PASS unit-general-utilities (exit status: 0)

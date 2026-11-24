@@ -1,0 +1,6 @@
+[==========] tests: Running 1 test(s).
+[ RUN      ] test_nqptp_utilities_source_invariants
+[       OK ] test_nqptp_utilities_source_invariants
+[==========] tests: 1 test(s) run.
+[  PASSED  ] 1 test(s).
+PASS unit-nqptp-utilities-source-invariants (exit status: 0)

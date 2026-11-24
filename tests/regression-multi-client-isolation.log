@@ -1,0 +1,10 @@
+[==========] tests: Running 1 test(s).
+[ RUN      ] test_multi_client_isolation
+[  SKIPPED ] test_multi_client_isolation
+[==========] tests: 1 test(s) run.
+[  PASSED  ] 0 test(s).
+[  SKIPPED ] tests: 1 test(s), listed below:
+[  SKIPPED ] test_multi_client_isolation
+
+ 1 SKIPPED TEST(S)
+PASS regression-multi-client-isolation (exit status: 0)
