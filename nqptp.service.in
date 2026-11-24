@@ -1,14 +1,28 @@
 [Unit]
-Description=NQPTP -- Not Quite PTP
+Description=Not Quite PTP -- NQPTP timing daemon
 Wants=network-online.target
 After=network.target network-online.target
 Before=shairport-sync.service
 
 [Service]
+Type=simple
 ExecStart=@prefix@/bin/nqptp
 DynamicUser=yes
-LimitRTPRIO=6
 AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+LimitRTPRIO=6
+Restart=on-failure
+
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+SystemCallArchitectures=native
 
 [Install]
 WantedBy=multi-user.target

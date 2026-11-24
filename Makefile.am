@@ -45,6 +45,7 @@ maintainer-clean-local:
 
 EXTRA_DIST = \
 	check-gitversion \
+	docs \
 	nqptp.service.in \
 	nqptp.freebsd \
 	README.md \
